@@ -142,7 +142,6 @@ var Body = {
     if (data.mass !== prevData.mass) {
       this.body.updateMassProperties();
     }
-    this.body.updateProperties();
   },
 
   /**
