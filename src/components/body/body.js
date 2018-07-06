@@ -28,6 +28,9 @@ var Body = {
     } else {
       this.el.sceneEl.addEventListener('loaded', this.initBody.bind(this));
     }
+
+    this.didIssueResizeWarning = false;
+    this.worldScale = new THREE.Vector3();
   },
 
   /**
@@ -131,6 +134,51 @@ var Body = {
       this.createWireframe(this.body);
       this.shouldUpdateWireframe = false;
     }
+  },
+
+  updateCannonScale: function(){
+    this.el.object3D.getWorldScale(this.worldScale);
+    const scale = this.worldScale;
+    const cannonBody = this.body;
+
+    for (var i=0; i<cannonBody.shapes.length; i++){
+      const cannonShape = cannonBody.shapes[i];
+      const shape = cannonShape.component;
+      if (!shape) continue;
+      const shapeType = shape.data.shape;
+      switch (shapeType){
+        case "sphere":
+          cannonShape.radius = shape.data.radius * scale.x;
+          cannonShape.updateBoundingSphereRadius();
+          break;
+        case "box":
+          const cannonHalfExtents = cannonShape.halfExtents;
+          const halfExtents = shape.data.halfExtents;
+          cannonHalfExtents.set(
+            halfExtents.x * scale.x,
+            halfExtents.y * scale.y,
+            halfExtents.z * scale.z
+          );
+          cannonShape.updateConvexPolyhedronRepresentation();
+          break;
+        //case "cylinder":
+          // https://github.com/MozillaReality/cannon.js/commit/b401ccbec3b9996e31d6ad060028065a432fcff7
+          // cannonShape.resize(shape.data.radiusTop * scale.x, shape.data.radiusBottom*scale.x, shape.data.height*scale.y);
+          // break;
+        default:
+          if (!this.didIssueResizeWarning){
+            this.didIssueResizeWarning = true;
+            console.warn("Cannot resize shape of type: ", shapeType);
+          }
+          break;
+      }
+      const cannonOffset = cannonBody.shapeOffsets[i];
+      const offset = shape.data.offset;
+      cannonOffset.set(offset.x*scale.x, offset.y*scale.y, offset.z*scale.z);
+    }
+    cannonBody.updateBoundingRadius();
+    cannonBody.aabbNeedsUpdate = true;
+    this.shouldUpdateWireframe = this.system.debug;
   },
 
   /**
