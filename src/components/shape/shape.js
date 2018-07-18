@@ -112,6 +112,16 @@ var Shape = {
     return null;
   },
 
+  update: function(){
+    if (this.bodyEl &&
+        this.bodyEl.components.body &&
+        this.bodyEl.components.body.body &&
+        this.bodyEl.components.body.body.world) {
+      this.bodyEl.components.body.syncToPhysics();
+      this.bodyEl.components.body.updateCannonScale();
+    }
+  },
+
   remove: function() {
     if (this.bodyEl.parentNode) {
       console.warn('removing shape component not currently supported');
