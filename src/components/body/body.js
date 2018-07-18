@@ -70,7 +70,7 @@ var Body = {
       var shape = mesh2shape(this.el.object3D, options);
 
       if (!shape) {
-        el.addEventListener('object3dset', this.initBody.bind(this));
+        el.addEventListener('object3dset', this.initBody.bind(this), {once: true});
         return;
       }
       this.body.addShape(shape, shape.offset, shape.orientation);
