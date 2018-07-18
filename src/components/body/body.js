@@ -70,7 +70,7 @@ var Body = {
       var shape = mesh2shape(this.el.object3D, options);
 
       if (!shape) {
-        el.addEventListener('object3dset', this.initBody.bind(this));
+        el.addEventListener('object3dset', this.initBody.bind(this), {once: true});
         return;
       }
       this.body.addShape(shape, shape.offset, shape.orientation);
@@ -92,7 +92,10 @@ var Body = {
     }
 
     if (this.isLoaded) {
-      this.el.emit('body-loaded', {body: this.el.body});
+      if (!this.didEmitBodyLoaded){
+        this.el.emit('body-loaded', {body: this.el.body});
+        this.didEmitBodyLoaded = true;
+      }
     }
   },
 
@@ -126,7 +129,10 @@ var Body = {
 
       this._play();
 
-      this.el.emit('body-loaded', {body: this.el.body});
+      if (!this.didEmitBodyLoaded){
+        this.el.emit('body-loaded', {body: this.el.body});
+        this.didEmitBodyLoaded = true;
+      }
       this.shouldUpdateBody = false;
     }
 
@@ -193,8 +199,11 @@ var Body = {
    */
   _play: function () {
     this.syncToPhysics();
-    this.system.addComponent(this);
-    this.system.addBody(this.body);
+    if (!this.didAddComponentAndAddBody){
+      this.system.addComponent(this);
+      this.system.addBody(this.body);
+      this.didAddComponentAndAddBody = true;
+    }
     if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
   },
 
@@ -219,16 +228,19 @@ var Body = {
 
     var data = this.data;
 
-    if (prevData.type != undefined && data.type != prevData.type) {
+    if (prevData.type !== undefined && data.type !== prevData.type) {
       this.body.type = data.type === 'dynamic' ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC;
     }
 
-    this.body.mass = data.mass || 0;
     if (data.type === 'dynamic') {
       this.body.linearDamping = data.linearDamping;
       this.body.angularDamping = data.angularDamping;
     }
-    if (data.mass !== prevData.mass) {
+
+    const prevMass = this.body.mass;
+    const currentMass = data.type === 'static' ? 0 : data.mass || 0;
+    if (currentMass !== prevMass) {
+      this.body.mass = currentMass;
       this.body.updateMassProperties();
     }
     if (this.body.updateProperties) this.body.updateProperties();
