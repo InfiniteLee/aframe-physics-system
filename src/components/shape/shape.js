@@ -11,7 +11,7 @@ var Shape = {
 
     // box
     halfExtents: {type: 'vec3', default: {x: 0.5, y: 0.5, z: 0.5}, if: {shape: ['box']}},
-    
+
     // cylinder
     radiusTop: {type: 'number', default: 1, if: {shape: ['cylinder']}},
     radiusBottom: {type: 'number', default: 1, if: {shape: ['cylinder']}},
@@ -50,8 +50,8 @@ var Shape = {
 
     if (data.hasOwnProperty('offset')) {
       offset = new CANNON.Vec3(
-        data.offset.x * scale.x, 
-        data.offset.y * scale.y, 
+        data.offset.x * scale.x,
+        data.offset.y * scale.y,
         data.offset.z * scale.z
       );
     }
@@ -67,17 +67,17 @@ var Shape = {
         break;
       case 'box':
         var halfExtents = new CANNON.Vec3(
-          data.halfExtents.x * scale.x, 
-          data.halfExtents.y * scale.y, 
+          data.halfExtents.x * scale.x,
+          data.halfExtents.y * scale.y,
           data.halfExtents.z * scale.z
         );
         shape = new CANNON.Box(halfExtents);
         break;
       case 'cylinder':
         shape = new CANNON.Cylinder(
-          data.radiusTop * scale.x, 
-          data.radiusBottom * scale.x, 
-          data.height * scale.y, 
+          data.radiusTop * scale.x,
+          data.radiusBottom * scale.x,
+          data.height * scale.y,
           data.numSegments
         );
 
@@ -90,6 +90,8 @@ var Shape = {
           console.warn(data.shape + ' shape not supported');
         return;
     }
+    shape.component = this;
+    this.shape = shape;
 
     if (this.bodyEl.body) {
       this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
@@ -111,9 +113,31 @@ var Shape = {
     return null;
   },
 
+  update: function(){
+    if (this.bodyEl &&
+        this.bodyEl.components.body &&
+        this.bodyEl.components.body.body &&
+        this.bodyEl.components.body.body.world) {
+      this.bodyEl.components.body.syncToPhysics();
+      this.bodyEl.components.body.updateCannonScale();
+    }
+  },
+
   remove: function() {
     if (this.bodyEl.parentNode) {
-      console.warn('removing shape component not currently supported');
+      const shape = this.shape;
+      const body = shape.body;
+      const shapes = body.shapes;
+      const shapeOffsets = body.shapeOffsets;
+      const shapeOrientations = body.shapeOrientations;
+      const index = shapes.indexOf(shape);
+      shapes.splice(index, 1);
+      shapeOffsets.splice(index, 1);
+      shapeOrientations.splice(index, 1);
+
+      body.updateMassProperties();
+      body.updateBoundingRadius();
+      body.aabbNeedsUpdate = true;
     }
   }
 };
