@@ -18,8 +18,21 @@ const CF_CHARACTER_OBJECT = 16;
 const CF_DISABLE_VISUALIZE_OBJECT = 32; //disable debug drawing
 const CF_DISABLE_SPU_COLLISION_PROCESSING = 64; //disable parallel/SPU processing
 
-function almostEquals(epsilon, u, v) {
+function almostEqualsVector3(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
+}
+
+function almostEqualsQuaternion(epsilon, u, v) {
+  return (
+    (Math.abs(u.x - v.x) < epsilon &&
+      Math.abs(u.y - v.y) < epsilon &&
+      Math.abs(u.z - v.z) < epsilon &&
+      Math.abs(u.w - v.w) < epsilon) ||
+    (Math.abs(u.x + v.x) < epsilon &&
+      Math.abs(u.y + v.y) < epsilon &&
+      Math.abs(u.z + v.z) < epsilon &&
+      Math.abs(u.w + v.w) < epsilon)
+  );
 }
 
 let AmmoBody = {
@@ -152,7 +165,7 @@ let AmmoBody = {
       mesh &&
       this.data.autoUpdateScale &&
       this.prevMeshScale &&
-      !almostEquals(0.001, mesh.scale, this.prevMeshScale)
+      !almostEqualsVector3(0.001, mesh.scale, this.prevMeshScale)
     ) {
       this.prevMeshScale.copy(mesh.scale);
       updated = true;
@@ -163,7 +176,7 @@ let AmmoBody = {
       obj !== mesh &&
       this.data.autoUpdateScale &&
       this.prevObjScale &&
-      !almostEquals(0.001, obj.scale, this.prevObjScale)
+      !almostEqualsVector3(0.001, obj.scale, this.prevObjScale)
     ) {
       this.prevObjScale.copy(obj.scale);
       updated = true;
@@ -345,12 +358,29 @@ let AmmoBody = {
         el.object3D.getWorldQuaternion(q);
       }
 
-      if (this.data.type === "kinematic") {
+      const position = this.msTransform.getOrigin();
+      const pos = {
+        x: position.x(),
+        y: position.y(),
+        z: position.z()
+      };
+      const quaternion = this.msTransform.getRotation();
+      const quat = {
+        x: quaternion.x(),
+        y: quaternion.y(),
+        z: quaternion.z(),
+        w: quaternion.w()
+      };
+
+      if (!almostEqualsVector3(0.001, v, pos) || !almostEqualsQuaternion(0.001, q, quat)) {
+        if (!this.body.isActive()) {
+          this.body.activate(true);
+        }
         this.msTransform.getOrigin().setValue(v.x, v.y, v.z);
+        this.rotation.setValue(q.x, q.y, q.z, q.w);
+        this.msTransform.setRotation(this.rotation);
+        this.motionState.setWorldTransform(this.msTransform);
       }
-      this.rotation.setValue(q.x, q.y, q.z, q.w);
-      this.msTransform.setRotation(this.rotation);
-      this.motionState.setWorldTransform(this.msTransform);
     };
   })(),
 
