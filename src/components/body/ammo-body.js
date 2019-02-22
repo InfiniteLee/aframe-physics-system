@@ -29,6 +29,8 @@ let AmmoBody = {
     gravity: { type: "vec3", default: { x: 0, y: -9.8, z: 0 } },
     linearDamping: { default: 0.01 },
     angularDamping: { default: 0.01 },
+    linearSleepingThreshold: { default: 1.6 },
+    angularSleepingThreshold: { default: 2.5 },
     angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     activationState: {
       default: DISABLE_DEACTIVATION,
@@ -111,6 +113,7 @@ let AmmoBody = {
       );
       this.body = new Ammo.btRigidBody(this.rbInfo);
       this.body.setActivationState(data.activationState);
+      this.body.setSleepingThresholds(data.linearSleepingThreshold, data.angularSleepingThreshold);
 
       this.body.setDamping(data.linearDamping, data.angularDamping);
 
@@ -139,7 +142,9 @@ let AmmoBody = {
     } else if (this.system.initialized && !this.isLoaded && this.loadedEventFired) {
       this.initBody();
     }
+  },
 
+  _updateShapes: function() {
     let updated = false;
 
     const mesh = this.el.object3DMap.mesh;
@@ -305,6 +310,7 @@ let AmmoBody = {
   },
 
   beforeStep: function() {
+    this._updateShapes();
     if (this.data.type !== "dynamic") {
       this.syncToPhysics();
     }
