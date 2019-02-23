@@ -33,7 +33,7 @@ let AmmoBody = {
     angularSleepingThreshold: { default: 2.5 },
     angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     activationState: {
-      default: DISABLE_DEACTIVATION,
+      default: ACTIVE_TAG,
       oneOf: [ACTIVE_TAG, ISLAND_SLEEPING, WANTS_DEACTIVATION, DISABLE_DEACTIVATION, DISABLE_SIMULATION]
     },
     type: { default: "dynamic", oneOf: ["static", "dynamic", "kinematic"] },
